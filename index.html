@@ -42,7 +42,7 @@
       </select>
       <button id="clearBtn">クリア</button>
     </div>
-    <div class="meta">※ モンスターJSONはGitHubから自動読み込み。ItemName が存在すればドロップ名として表示されます。</div>
+    <div class="meta">※ GitHub 上の JSON からモンスターを読み込みます。</div>
     <div id="list"><div class="item"><pre>検索ワードを入力してください</pre></div></div>
   </div>
 
@@ -56,22 +56,21 @@
     const clearBtn = document.getElementById('clearBtn');
 
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-    function tryParseJson(text){ try{ return JSON.parse(text); }catch(e){ alert('JSON解析に失敗: '+e.message); return null; } }
 
     function normalizeMonsterJson(obj){
       const arr = [];
       for(const [id, mon] of Object.entries(obj)){
         if(!mon || typeof mon !== 'object') continue;
-        const name = (mon.name) ? mon.name : String(id);
+        const name = mon.name || String(id);
         const stats = mon.stats || {};
         const dropsRaw = mon.drops || [];
         const drops = dropsRaw.map(d => {
           if(!d) return { itemId:'', name:'', param:null, inv:null, slot:null };
           const itemId = d.itemId || d.ItemId || d.item || d.id || '';
-          const nm = (d.ItemName && String(d.ItemName).trim()) ? String(d.ItemName).trim() : '';
+          const givenName = (d.ItemName && String(d.ItemName).trim()) ? String(d.ItemName).trim() : '';
           return {
             itemId: String(itemId||''),
-            name: nm,
+            name: givenName,
             param: (d.param!==undefined) ? d.param : null,
             inv: (d['1/']!==undefined) ? d['1/'] : null,
             slot: d.slot !== undefined ? d.slot : null
@@ -118,9 +117,14 @@
       variants.forEach((d,i)=>{
         let chance = '';
         if(d.inv && !isNaN(Number(d.inv)) && Number(d.inv) > 0){
-          chance = `1/${d.inv} (${(1/Number(d.inv)*100).toFixed(2)}%)`;
+          chance = `1/${d.inv}`;
+          const pct = (1/Number(d.inv))*100;
+          chance += ` (${pct.toFixed(2)}%)`;
         }
-        if(d.param !== null) chance += (chance ? ', ' : '') + `param=${d.param}`;
+        if(d.param!==null && d.param!==undefined){
+          const paramStr = `param=${d.param}`;
+          chance = chance ? chance + `, ${paramStr}` : paramStr;
+        }
         if(multiple && i===0) chance += ' (初回補正)';
         parts.push(`  - 確率: ${chance}`);
       });
@@ -144,13 +148,10 @@
         el.className = 'item';
         const titleHtml = highlightHtml(it.title + ' ', query);
         const idHtml = `<span style="color:rgba(0,255,106,0.6);font-size:12px">(${escapeHtml(it.id)})</span>`;
-
         const s = it.body;
         const statsText = `ID: ${it.id}\nHP: ${s.HP}\nAP: ${s.AP}\n攻撃力: ${s.攻撃力}\n防御力: ${s.防御力}\n素早さ: ${s.素早さ}\n回避率: ${s.回避率}\nゴールド: ${s.ゴールド}\n経験値: ${s.経験値}`;
-
         const grouped = groupDrops(it.drops);
         const dropsHtml = grouped.map(g => `<li>${highlightHtml(formatDropGroup(g), query).replace(/\n/g,'<br>')}</li>`).join('');
-
         el.innerHTML = `<h3>${titleHtml} ${idHtml}</h3><pre>${highlightHtml(statsText, query)}</pre><ul class="drops">${dropsHtml || '<li>ドロップなし</li>'}</ul>`;
         list.appendChild(el);
       }
@@ -159,12 +160,12 @@
 
     function matches(value, query, matchMode){
       if(!query) return false;
-      const v = String(value || '');
+      const v = String(value||'');
       try{
-        if(matchMode === 'partial') return v.toLowerCase().includes(query.toLowerCase());
-        if(matchMode === 'prefix') return v.toLowerCase().startsWith(query.toLowerCase());
-        if(matchMode === 'exact') return v.toLowerCase() === query.toLowerCase();
-        if(matchMode === 'regex'){ const re = new RegExp(query, 'i'); return re.test(v); }
+        if(matchMode==='partial') return v.toLowerCase().includes(query.toLowerCase());
+        if(matchMode==='prefix') return v.toLowerCase().startsWith(query.toLowerCase());
+        if(matchMode==='exact') return v.toLowerCase()===query.toLowerCase();
+        if(matchMode==='regex'){ const re = new RegExp(query,'i'); return re.test(v); }
       }catch(e){ return false; }
       return false;
     }
@@ -173,43 +174,39 @@
       const query = q.value.trim();
       const mode = modeSel.value;
       const matchMode = matchSel.value;
-      let res = [];
-
       if(!query){
         list.innerHTML = `<div class="item"><pre>検索ワードを入力してください</pre></div>`;
         return;
       }
-
-      if(mode === 'monster'){
+      let res = [];
+      if(mode==='monster'){
         res = data.filter(it => matches(it.title, query, matchMode));
-      } else if(mode === 'drop'){
-        res = data.filter(it => it.drops.some(d => matches(d.name || d.itemId, query, matchMode) || matches(d.itemId, query, matchMode)));
-      } else if(mode === 'id'){
+      } else if(mode==='drop'){
+        res = data.filter(it => it.drops.some(d => matches(d.name||d.itemId, query, matchMode) || matches(d.itemId, query, matchMode)));
+      } else if(mode==='id'){
         res = data.filter(it => matches(it.id, query, matchMode));
       }
-
       render(res, query);
     }
 
     q.addEventListener('input', doSearch);
     modeSel.addEventListener('change', doSearch);
     matchSel.addEventListener('change', doSearch);
-    clearBtn.addEventListener('click', ()=>{ data=[]; list.innerHTML='<div class="item"><pre>検索ワードを入力してください</pre></div>'; q.value=''; });
 
-    // GitHubからJSONを読み込む
-    async function loadData(){
-      try{
-        const url = 'https://raw.githubusercontent.com/Yu08083/nemukunai/main/Mdata.json';
-        const resp = await fetch(url);
-        const json = await resp.json();
+    clearBtn.addEventListener('click', ()=>{
+      q.value=''; list.innerHTML='<div class="item"><pre>検索ワードを入力してください</pre></div>';
+    });
+
+    // GitHub から JSON 読み込み
+    fetch('https://raw.githubusercontent.com/Yu08083/nemukunai/main/Mdata.json')
+      .then(res=>res.json())
+      .then(json=>{
         data = normalizeMonsterJson(json);
         list.innerHTML = `<div class="item"><pre>検索ワードを入力してください</pre></div>`;
-      }catch(e){
-        alert('データ読み込み失敗: ' + e.message);
-      }
-    }
-
-    loadData();
+      })
+      .catch(err=>{
+        list.innerHTML = `<div class="item"><pre>JSON読み込みエラー: ${escapeHtml(err.message)}</pre></div>`;
+      });
   </script>
 </body>
 </html>
