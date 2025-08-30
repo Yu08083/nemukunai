@@ -1947,14 +1947,14 @@
       {
         "slot": 1,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 100.0,
         "1/": 1.0
       },
       {
         "slot": 2,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -1997,7 +1997,7 @@
       {
         "slot": 3,
         "itemId": "0x81010aae",
-        "ItemName": "",
+        "ItemName": "かんぜんふっかつやく",
         "param": 3.0,
         "1/": 33.333333333333336
       },
@@ -2033,7 +2033,7 @@
       {
         "slot": 2,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -2062,14 +2062,14 @@
       {
         "slot": 1,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 6.25,
         "1/": 16.0
       },
       {
         "slot": 2,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -2406,7 +2406,7 @@
       {
         "slot": 2,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -3064,14 +3064,14 @@
       {
         "slot": 1,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 100.0,
         "1/": 1.0
       },
       {
         "slot": 2,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 25.0,
         "1/": 4.0
       }
@@ -3092,14 +3092,14 @@
       {
         "slot": 1,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 100.0,
         "1/": 1.0
       },
       {
         "slot": 2,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 25.0,
         "1/": 4.0
       }
@@ -3740,7 +3740,7 @@
       {
         "slot": 2,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 25.0,
         "1/": 4.0
       },
@@ -4548,7 +4548,7 @@
       {
         "slot": 3,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -4590,7 +4590,7 @@
       {
         "slot": 3,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -4831,7 +4831,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -5321,7 +5321,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -5364,7 +5364,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 3.125,
         "1/": 32.0
       },
@@ -5406,7 +5406,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 3.125,
         "1/": 32.0
       },
@@ -5449,7 +5449,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -5798,7 +5798,7 @@
       {
         "slot": 3,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -6052,7 +6052,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -6095,7 +6095,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -6308,7 +6308,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -6865,7 +6865,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -7036,7 +7036,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -7086,7 +7086,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -7433,7 +7433,7 @@
       {
         "slot": 3,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -7696,7 +7696,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -7952,7 +7952,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -8166,7 +8166,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -8565,7 +8565,7 @@
       {
         "slot": 2,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 0.78130001,
         "1/": 127.99180688606415
       },
@@ -9339,7 +9339,7 @@
       {
         "slot": 2,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 0.78130001,
         "1/": 127.99180688606415
       },
@@ -10098,7 +10098,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -13165,7 +13165,7 @@
       {
         "slot": 4,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 30.0,
         "1/": 3.3333333333333335
       }
@@ -13187,7 +13187,7 @@
       {
         "slot": 1,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 100.0,
         "1/": 1.0
       },
@@ -13201,7 +13201,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 30.0,
         "1/": 3.3333333333333335
       },
@@ -13230,14 +13230,14 @@
       {
         "slot": 1,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 100.0,
         "1/": 1.0
       },
       {
         "slot": 2,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 20.0,
         "1/": 5.0
       },
@@ -13316,14 +13316,14 @@
       {
         "slot": 1,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 100.0,
         "1/": 1.0
       },
       {
         "slot": 2,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 30.0,
         "1/": 3.3333333333333335
       },
@@ -17215,7 +17215,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -17394,7 +17394,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -17437,7 +17437,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 3.125,
         "1/": 32.0
       },
@@ -17566,7 +17566,7 @@
       {
         "slot": 3,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -17695,7 +17695,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -17738,7 +17738,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -17994,7 +17994,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -18378,7 +18378,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b0",
-        "ItemName": "",
+        "ItemName": "バナナ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -18720,7 +18720,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -19232,7 +19232,7 @@
       {
         "slot": 3,
         "itemId": "0x810104b3",
-        "ItemName": "",
+        "ItemName": "かき",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -19495,7 +19495,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -19744,14 +19744,14 @@
       {
         "slot": 2,
         "itemId": "0x81010aae",
-        "ItemName": "",
+        "ItemName": "かんぜんふっかつやく",
         "param": 1.5625,
         "1/": 64.0
       },
       {
         "slot": 3,
         "itemId": "0x810104c1",
-        "ItemName": "",
+        "ItemName": "トマト",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -20383,7 +20383,7 @@
       {
         "slot": 3,
         "itemId": "0x81010aae",
-        "ItemName": "",
+        "ItemName": "かんぜんふっかつやく",
         "param": 3.125,
         "1/": 32.0
       },
@@ -20490,7 +20490,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 3.125,
         "1/": 32.0
       }
@@ -20904,7 +20904,7 @@
       {
         "slot": 3,
         "itemId": "0x810104ae",
-        "ItemName": "",
+        "ItemName": "トウガラシ",
         "param": 3.125,
         "1/": 32.0
       },
@@ -21210,7 +21210,7 @@
       {
         "slot": 2,
         "itemId": "0x81010aae",
-        "ItemName": "",
+        "ItemName": "かんぜんふっかつやく",
         "param": 1.5625,
         "1/": 64.0
       },
@@ -27243,4 +27243,5 @@
     "drops": []
   }
 }
+
 
