@@ -192,26 +192,16 @@
       return false;
     }
 
-    function doSearch(){
-      const query = q.value.trim();
-      const mode = modeSel.value;
-      const matchMode = matchSel.value;
-      let res = [];
-
-      if(!query){
-        list.innerHTML = `<div class=\"item\"><pre>検索ワードを入力してください</pre></div>`;
-        return;
+    async function loadMonsterDataFromGitHub() {
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/Yu08083/nemukunai/main/Mdata.json');
+        const jsonData = await response.json();
+        data = normalizeMonsterJson(jsonData);
+        render(data, '');
+      } catch (error) {
+        console.error('データ取得失敗:', error);
+        showStatus('データの取得に失敗しました', true);
       }
-
-      if(mode === 'monster'){
-        res = data.filter(it => matches(it.title, query, matchMode));
-      } else if(mode === 'drop'){
-        res = data.filter(it => it.drops.some(d => matches(d.name || d.itemId, query, matchMode) || matches(d.itemId, query, matchMode)));
-      } else if(mode === 'id'){
-        res = data.filter(it => matches(it.id, query, matchMode));
-      }
-
-      render(res, query);
     }
 
     window.addEventListener('load', loadMonsterDataFromGitHub);
@@ -227,4 +217,3 @@
   </script>
 </body>
 </html>
-
