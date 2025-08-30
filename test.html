@@ -22,6 +22,17 @@
     ul.drops li{list-style:disc;color:var(--accent);margin:4px 0}
     mark{background:rgba(0,255,106,0.12);color:var(--accent);padding:0 4px;border-radius:3px}
     .meta{font-size:12px;color:rgba(0,255,106,0.6);margin-top:6px}
+    .meta a{color:var(--accent);text-decoration:none}
+    .meta a:hover{text-decoration:underline}
+    .status-message {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .status-message.error { color: #ff5252; background: rgba(255, 82, 82, 0.1); }
+    .status-message.info { color: #00ff6a; background: rgba(0, 255, 106, 0.1); }
     @media(max-width:640px){body{padding:12px}.searchbox input[type="text"]{min-width:120px}}
   </style>
 </head>
@@ -46,12 +57,13 @@
       <button id="clearBtn">クリア</button>
     </div>
     <div class="meta">※ モンスターJSONを読み込むとローカルでインデックス化。ItemName が空欄のときはアイテム辞書（任意）で補完します。</div>
+    <div id="statusMessage" class="status-message info" style="display:none;"></div>
     <div id="list"><div class="item"><pre>検索ワードを入力してください</pre></div></div>
   </div>
 
   <script>
     let data = [];
-    let itemMap = {}; // itemId -> name
+    let itemMap = {};
 
     const q = document.getElementById('q');
     const list = document.getElementById('list');
@@ -60,40 +72,62 @@
     const modeSel = document.getElementById('mode');
     const matchSel = document.getElementById('match');
     const clearBtn = document.getElementById('clearBtn');
+    const statusMessage = document.getElementById('statusMessage');
 
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function showStatus(message, isError = false) {
+      statusMessage.textContent = message;
+      statusMessage.style.display = 'block';
+      statusMessage.className = isError ? 'status-message error' : 'status-message info';
+    }
 
-    function tryParseJson(text){ try{ return JSON.parse(text); }catch(e){ alert('JSON解析に失敗: '+e.message); return null; } }
+    function hideStatus() {
+      statusMessage.style.display = 'none';
+    }
 
-    function buildItemMap(obj){
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function tryParseJson(text) {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        showStatus('JSON解析に失敗: ' + e.message, true);
+        return null;
+      }
+    }
+
+    function buildItemMap(obj) {
       const map = {};
-      if(!obj) return map;
-      if(Array.isArray(obj)){
-        for(const it of obj){ if(it && it.id) map[String(it.id)] = it.name || it.name_jp || it.name_en || it.label || '' }
-      } else if(typeof obj === 'object'){
-        for(const [k,v] of Object.entries(obj)) map[String(k)] = String(v);
+      if (!obj) return map;
+      if (Array.isArray(obj)) {
+        for (const it of obj) {
+          if (it && it.id) map[String(it.id)] = it.name || it.name_jp || it.name_en || it.label || '';
+        }
+      } else if (typeof obj === 'object') {
+        for (const [k, v] of Object.entries(obj)) map[String(k)] = String(v);
       }
       return map;
     }
 
-    function normalizeMonsterJson(obj){
+    function normalizeMonsterJson(obj) {
       const arr = [];
-      for(const [id, mon] of Object.entries(obj)){
-        if(!mon || typeof mon !== 'object') continue;
+      for (const [id, mon] of Object.entries(obj)) {
+        if (!mon || typeof mon !== 'object') continue;
         const name = (mon.name) ? mon.name : String(id);
         const stats = mon.stats || {};
         const dropsRaw = mon.drops || [];
         const drops = dropsRaw.map(d => {
-          if(!d) return { itemId:'', name:'', param:null, inv:null, slot:null };
+          if (!d) return { itemId: '', name: '', param: null, inv: null, slot: null };
           const itemId = d.itemId || d.ItemId || d.item || d.id || '';
           const givenName = (d.ItemName && String(d.ItemName).trim()) ? String(d.ItemName).trim() : '';
           const nameFromMap = itemMap[itemId] || '';
           const nm = givenName || nameFromMap || '';
           return {
-            itemId: String(itemId||''),
+            itemId: String(itemId || ''),
             name: nm,
-            param: (d.param!==undefined) ? d.param : null,
-            inv: (d['1/']!==undefined) ? d['1/'] : null,
+            param: (d.param !== undefined) ? d.param : null,
+            inv: (d['1/'] !== undefined) ? d['1/'] : null,
             slot: d.slot !== undefined ? d.slot : null
           };
         });
@@ -114,148 +148,188 @@
       return arr;
     }
 
-    function updateNamesFromMap(){
-      if(!itemMap || Object.keys(itemMap).length===0) return;
-      for(const mon of data){
-        for(const d of mon.drops){
-          if(!d.name && itemMap[d.itemId]) d.name = itemMap[d.itemId];
+    function updateNamesFromMap() {
+      if (!itemMap || Object.keys(itemMap).length === 0) return;
+      for (const mon of data) {
+        for (const d of mon.drops) {
+          if (!d.name && itemMap[d.itemId]) d.name = itemMap[d.itemId];
         }
       }
     }
 
-    function groupDrops(drops){
+    function groupDrops(drops) {
       const grouped = {};
-      for(const d of drops){
-        if(!grouped[d.itemId]) grouped[d.itemId] = { name: d.name, itemId: d.itemId, variants: [] };
+      for (const d of drops) {
+        if (!grouped[d.itemId]) grouped[d.itemId] = { name: d.name, itemId: d.itemId, variants: [] };
         grouped[d.itemId].variants.push(d);
       }
-      // 確率が大きい順にソート
-      for(const g of Object.values(grouped)){
-        g.variants.sort((a,b)=>{
-          const invA = Number(a.inv)||Infinity;
-          const invB = Number(b.inv)||Infinity;
-          return invA - invB; // 分母小さい方=確率高い
+      for (const g of Object.values(grouped)) {
+        g.variants.sort((a, b) => {
+          const invA = Number(a.inv) || Infinity;
+          const invB = Number(b.inv) || Infinity;
+          return invA - invB;
         });
       }
       return Object.values(grouped);
     }
 
-    function formatDropGroup(group, query){
+    function formatDropGroup(group) {
       const parts = [];
       parts.push(`${group.name || `[不明:${group.itemId}]`} (ID:${group.itemId})`);
       const variants = group.variants;
       const multiple = variants.length > 1;
-      variants.forEach((d,i)=>{
+      variants.forEach((d, i) => {
         let chance = '';
-        if(d.inv && !isNaN(Number(d.inv)) && Number(d.inv) > 0){
+        if (d.inv && !isNaN(Number(d.inv)) && Number(d.inv) > 0) {
           chance = `1/${d.inv}`;
-          const pct = (1/Number(d.inv))*100;
+          const pct = (1 / Number(d.inv)) * 100;
           chance += ` (${pct.toFixed(2)}%)`;
         }
-        if(d.param !== null && d.param !== undefined){
+        if (d.param !== null && d.param !== undefined) {
           const paramStr = `param=${d.param}`;
           chance = chance ? chance + `, ${paramStr}` : paramStr;
         }
-        if(multiple && i===0) chance += ' (初回補正)';
+        if (multiple && i === 0) chance += ' (初回補正)';
         parts.push(`  - 確率: ${chance}`);
       });
       return parts.join('\n');
     }
 
-    function highlightHtml(text, query){
-      if(!query) return escapeHtml(text);
-      try{
-        const q = String(query);
-        const esc = q.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-        const re = new RegExp(esc, 'gi');
-        return escapeHtml(text).replace(re, m => `<mark>${escapeHtml(m)}</mark>`);
-      }catch(e){ return escapeHtml(text); }
+    function escapeRegex(s) {
+      return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    function render(items, query){
+    function highlightHtml(text, query, matchMode) {
+      if (!query) return escapeHtml(text);
+      try {
+        const esc = (matchMode === 'regex') ? query : escapeRegex(query);
+        const re = new RegExp(esc, 'gi');
+        return escapeHtml(text).replace(re, m => `<mark>${escapeHtml(m)}</mark>`);
+      } catch (e) {
+        return escapeHtml(text);
+      }
+    }
+
+    function render(items, query, matchMode) {
       list.innerHTML = '';
-      for(const it of items){
+      for (const it of items) {
         const el = document.createElement('div');
         el.className = 'item';
-        const titleHtml = highlightHtml(it.title + ' ', query);
+        const titleHtml = highlightHtml(it.title, query, matchMode);
         const idHtml = `<span style=\"color:rgba(0,255,106,0.6);font-size:12px\">(${escapeHtml(it.id)})</span>`;
 
         const s = it.body;
-        const statsText = `ID: ${it.id}\nHP: ${s.HP}\nAP: ${s.AP}\n攻撃力: ${s.攻撃力}\n防御力: ${s.防御力}\n素早さ: ${s.素早さ}\n回避率: ${s.回避率}\nゴールド: ${s.ゴールド}\n経験値: ${s.経験値}`;
+        const statsText = `ID: ${it.id}\nHP: ${s.HP}\nAP: ${s.AP}\n攻撃力: ${s.攻撃力}\n防御力: ${s.防御力}\n素早さ: ${s.素早さ}\n回避率: ${s.AVO}\nゴールド: ${s.ゴールド}\n経験値: ${s.経験値}`;
 
         const grouped = groupDrops(it.drops);
-        const dropsHtml = grouped.map(g => `<li>${highlightHtml(formatDropGroup(g, query), query).replace(/\n/g,'<br>')}</li>`).join('');
+        const dropsHtml = grouped.map(g => `<li>${highlightHtml(formatDropGroup(g), query, matchMode).replace(/\n/g, '<br>')}</li>`).join('');
 
-        el.innerHTML = `<h3>${titleHtml} ${idHtml}</h3><pre>${highlightHtml(statsText, query)}</pre><ul class=\"drops\">${dropsHtml || '<li>ドロップなし</li>'}</ul>`;
+        el.innerHTML = `<h3>${titleHtml} ${idHtml}</h3><pre>${highlightHtml(statsText, query, matchMode)}</pre><ul class=\"drops\">${dropsHtml || '<li>ドロップなし</li>'}</ul>`;
         list.appendChild(el);
       }
-      if(items.length===0) list.innerHTML = `<div class=\"item\"><pre>該当なし</pre></div>`;
+      if (items.length === 0) list.innerHTML = `<div class=\"item\"><pre>該当なし</pre></div>`;
     }
 
-    function matches(value, query, matchMode){
-      if(!query) return false;
+    function matches(value, query, matchMode) {
+      if (!query) return false;
       const v = String(value || '');
-      try{
-        if(matchMode === 'partial') return v.toLowerCase().includes(query.toLowerCase());
-        if(matchMode === 'prefix') return v.toLowerCase().startsWith(query.toLowerCase());
-        if(matchMode === 'exact') return v.toLowerCase() === query.toLowerCase();
-        if(matchMode === 'regex'){ const re = new RegExp(query, 'i'); return re.test(v); }
-      }catch(e){ return false; }
+      const qLower = query.toLowerCase();
+      try {
+        if (matchMode === 'partial') return v.toLowerCase().includes(qLower);
+        if (matchMode === 'prefix') return v.toLowerCase().startsWith(qLower);
+        if (matchMode === 'exact') return v.toLowerCase() === qLower;
+        if (matchMode === 'regex') { const re = new RegExp(query, 'i'); return re.test(v); }
+      } catch (e) {
+        return false;
+      }
       return false;
     }
 
-    function doSearch(){
+    function doSearch() {
       const query = q.value.trim();
       const mode = modeSel.value;
       const matchMode = matchSel.value;
       let res = [];
 
-      if(!query){
+      hideStatus();
+      if (!query) {
         list.innerHTML = `<div class=\"item\"><pre>検索ワードを入力してください</pre></div>`;
         return;
       }
 
-      if(mode === 'monster'){
+      if (mode === 'monster') {
         res = data.filter(it => matches(it.title, query, matchMode));
-      } else if(mode === 'drop'){
+      } else if (mode === 'drop') {
         res = data.filter(it => it.drops.some(d => matches(d.name || d.itemId, query, matchMode) || matches(d.itemId, query, matchMode)));
-      } else if(mode === 'id'){
+      } else if (mode === 'id') {
         res = data.filter(it => matches(it.id, query, matchMode));
       }
 
-      render(res, query);
+      render(res, query, matchMode);
     }
 
-    q.addEventListener('input', doSearch);
-    modeSel.addEventListener('change', doSearch);
-    matchSel.addEventListener('change', doSearch);
-
-    monsterFile.addEventListener('change', async ()=>{
-      const f = monsterFile.files?.[0]; if(!f) return;
-      try{
+    async function handleMonsterFileChange() {
+      const f = monsterFile.files?.[0];
+      if (!f) return;
+      showStatus('モンスターJSONを読み込み中...');
+      try {
         const text = await f.text();
         const obj = tryParseJson(text);
-        if(!obj) return;
+        if (!obj) {
+          hideStatus();
+          return;
+        }
         data = normalizeMonsterJson(obj);
         updateNamesFromMap();
         list.innerHTML = `<div class=\"item\"><pre>検索ワードを入力してください</pre></div>`;
-      }catch(err){ alert('読み込み失敗: '+err.message); } finally { monsterFile.value = ''; }
-    });
+        showStatus(`${data.length}体のモンスターデータを読み込みました。`, false);
+      } catch (err) {
+        showStatus('読み込み失敗: ' + err.message, true);
+      } finally {
+        monsterFile.value = '';
+      }
+    }
 
-    itemMapFile.addEventListener('change', async ()=>{
-      const f = itemMapFile.files?.[0]; if(!f) return;
-      try{
+    async function handleItemMapFileChange() {
+      const f = itemMapFile.files?.[0];
+      if (!f) return;
+      showStatus('アイテム辞書JSONを読み込み中...');
+      try {
         const text = await f.text();
         const obj = tryParseJson(text);
-        if(!obj) return;
+        if (!obj) {
+          hideStatus();
+          return;
+        }
         itemMap = buildItemMap(obj);
         updateNamesFromMap();
+        showStatus(`アイテム辞書を読み込みました。`, false);
         doSearch();
-      }catch(err){ alert('読み込み失敗: '+err.message); } finally { itemMapFile.value = ''; }
-    });
+      } catch (err) {
+        showStatus('読み込み失敗: ' + err.message, true);
+      } finally {
+        itemMapFile.value = '';
+      }
+    }
 
-    clearBtn.addEventListener('click', ()=>{ data=[]; itemMap={}; list.innerHTML='<div class=\"item\"><pre>検索ワードを入力してください</pre></div>'; q.value=''; });
+    function init() {
+      q.addEventListener('input', doSearch);
+      modeSel.addEventListener('change', doSearch);
+      matchSel.addEventListener('change', doSearch);
+      monsterFile.addEventListener('change', handleMonsterFileChange);
+      itemMapFile.addEventListener('change', handleItemMapFileChange);
+      clearBtn.addEventListener('click', () => {
+        data = [];
+        itemMap = {};
+        list.innerHTML = '<div class=\"item\"><pre>検索ワードを入力してください</pre></div>';
+        q.value = '';
+        hideStatus();
+      });
+    }
 
+    init();
   </script>
+</body>
+</html>
 </body>
 </html>
