@@ -186,7 +186,6 @@
         if (!response.ok) throw new Error('データの取得に失敗しました');
         const jsonData = await response.json();
         data = normalizeMonsterJson(jsonData); // データの整形
-        render(data, ''); // 初期表示
       } catch (error) {
         console.error('データ取得失敗:', error);
         list.innerHTML = `<div class="item"><pre>データの取得に失敗しました</pre></div>`;
@@ -209,3 +208,4 @@
   </script>
 </body>
 </html>
+
