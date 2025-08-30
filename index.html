@@ -13,7 +13,6 @@
     .searchbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     .searchbox input[type="text"], .searchbox select, .searchbox button{background:transparent;color:var(--accent);border:1px solid rgba(0,255,106,0.12);padding:8px 10px;border-radius:6px;font-size:14px;appearance:none}
     .searchbox select option{background:#000;color:var(--accent)}
-    .searchbox input[type="file"]{color:var(--accent)}
     #list{margin-top:12px}
     .item{background:linear-gradient(180deg,#02120e,#041716);border:1px solid rgba(0,255,106,0.04);padding:12px;border-radius:6px;margin-top:10px}
     .item h3{margin:0 0 8px;font-size:15px;color:var(--accent)}
@@ -58,39 +57,51 @@
     const matchSel = document.getElementById('match');
     const clearBtn = document.getElementById('clearBtn');
 
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    // HTMLエスケープ処理
+    function escapeHtml(s) { 
+      return String(s).replace(/[&<>"']/g, m => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+      })[m]);
+    }
 
-    function tryParseJson(text){ try{ return JSON.parse(text); }catch(e){ alert('JSON解析に失敗: '+e.message); return null; } }
+    // JSONの解析処理
+    function tryParseJson(text) { 
+      try { return JSON.parse(text); } 
+      catch (e) { alert('JSON解析に失敗: ' + e.message); return null; }
+    }
 
-    function buildItemMap(obj){
+    // アイテムID → 名前のマッピング作成
+    function buildItemMap(obj) {
       const map = {};
-      if(!obj) return map;
-      if(Array.isArray(obj)){
-        for(const it of obj){ if(it && it.id) map[String(it.id)] = it.name || it.name_jp || it.name_en || it.label || '' }
-      } else if(typeof obj === 'object'){
-        for(const [k,v] of Object.entries(obj)) map[String(k)] = String(v);
+      if (!obj) return map;
+      if (Array.isArray(obj)) {
+        obj.forEach(it => {
+          if (it && it.id) map[String(it.id)] = it.name || it.name_jp || it.name_en || it.label || '';
+        });
+      } else if (typeof obj === 'object') {
+        for (const [k, v] of Object.entries(obj)) {
+          map[String(k)] = String(v);
+        }
       }
       return map;
     }
 
-    function normalizeMonsterJson(obj){
+    // モンスターのJSONデータを整形
+    function normalizeMonsterJson(obj) {
       const arr = [];
-      for(const [id, mon] of Object.entries(obj)){
-        if(!mon || typeof mon !== 'object') continue;
-        const name = (mon.name) ? mon.name : String(id);
+      for (const [id, mon] of Object.entries(obj)) {
+        if (!mon || typeof mon !== 'object') continue;
+        const name = mon.name || String(id);
         const stats = mon.stats || {};
         const dropsRaw = mon.drops || [];
         const drops = dropsRaw.map(d => {
-          if(!d) return { itemId:'', name:'', param:null, inv:null, slot:null };
           const itemId = d.itemId || d.ItemId || d.item || d.id || '';
-          const givenName = (d.ItemName && String(d.ItemName).trim()) ? String(d.ItemName).trim() : '';
           const nameFromMap = itemMap[itemId] || '';
-          const nm = givenName || nameFromMap || '';
           return {
-            itemId: String(itemId||''),
-            name: nm,
-            param: (d.param!==undefined) ? d.param : null,
-            inv: (d['1/']!==undefined) ? d['1/'] : null,
+            itemId: String(itemId || ''),
+            name: d.ItemName ? String(d.ItemName).trim() : nameFromMap,
+            param: d.param !== undefined ? d.param : null,
+            inv: d['1/'] !== undefined ? d['1/'] : null,
             slot: d.slot !== undefined ? d.slot : null
           };
         });
@@ -111,129 +122,88 @@
       return arr;
     }
 
-    function updateNamesFromMap(){
-      if(!itemMap || Object.keys(itemMap).length===0) return;
-      for(const mon of data){
-        for(const d of mon.drops){
-          if(!d.name && itemMap[d.itemId]) d.name = itemMap[d.itemId];
-        }
-      }
-    }
-
-    function groupDrops(drops){
+    // ドロップアイテムをグループ化
+    function groupDrops(drops) {
       const grouped = {};
-      for(const d of drops){
-        if(!grouped[d.itemId]) grouped[d.itemId] = { name: d.name, itemId: d.itemId, variants: [] };
+      drops.forEach(d => {
+        if (!grouped[d.itemId]) {
+          grouped[d.itemId] = { name: d.name, itemId: d.itemId, variants: [] };
+        }
         grouped[d.itemId].variants.push(d);
-      }
-      // 確率が大きい順にソート
-      for(const g of Object.values(grouped)){
-        g.variants.sort((a,b)=>{
-          const invA = Number(a.inv)||Infinity;
-          const invB = Number(b.inv)||Infinity;
-          return invA - invB; // 分母小さい方=確率高い
+      });
+      // 確率の高い順にソート
+      Object.values(grouped).forEach(g => {
+        g.variants.sort((a, b) => {
+          const invA = Number(a.inv) || Infinity;
+          const invB = Number(b.inv) || Infinity;
+          return invA - invB;
         });
-      }
+      });
       return Object.values(grouped);
     }
 
-    function formatDropGroup(group, query){
-      const parts = [];
-      parts.push(`${group.name || `[不明:${group.itemId}]`} (ID:${group.itemId})`);
-      const variants = group.variants;
-      const multiple = variants.length > 1;
-      variants.forEach((d,i)=>{
-        let chance = `1/${d.inv}`;
-        if(i === 0) chance += ' (初回補正)';
-        parts.push(`  - 確率: ${chance}`);
-      });
-      return parts.join('\n');
-    }
-
-    function highlightHtml(text, query){
-      if(!query) return escapeHtml(text);
-      try{
-        const q = String(query);
-        const esc = q.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-        const re = new RegExp(esc, 'gi');
-        return escapeHtml(text).replace(re, m => `<mark>${escapeHtml(m)}</mark>`);
-      }catch(e){ return escapeHtml(text); }
-    }
-
-    function render(items, query){
-      list.innerHTML = '';
-      for(const it of items){
-        const el = document.createElement('div');
-        el.className = 'item';
-        const titleHtml = highlightHtml(it.title + ' ', query);
-        const idHtml = `<span style=\"color:rgba(0,255,106,0.6);font-size:12px\">(${escapeHtml(it.id)})</span>`;
-
-        const s = it.body;
-        const statsText = `ID: ${it.id}\nHP: ${s.HP}\nAP: ${s.AP}\n攻撃力: ${s.ATK}\n防御力: ${s.DEF}\n素早さ: ${s.SPD}\n回避率: ${s.AVO}`;
-
-        const grouped = groupDrops(it.drops);
-        const dropsHtml = grouped.map(g => `<li>${highlightHtml(formatDropGroup(g, query), query).replace(/\n/g,'<br>')}</li>`).join('');
-
-        el.innerHTML = `<h3>${titleHtml} ${idHtml}</h3><pre>${highlightHtml(statsText, query)}</pre><ul class=\"drops\">${dropsHtml || '<li>ドロップなし</li>'}</ul>`;
-        list.appendChild(el);
+    // 検索処理
+    function matches(value, query, matchMode) {
+      if (!query) return false;
+      const v = String(value || '').toLowerCase();
+      const q = query.toLowerCase();
+      switch (matchMode) {
+        case 'partial': return v.includes(q);
+        case 'prefix': return v.startsWith(q);
+        case 'exact': return v === q;
+        case 'regex': return new RegExp(q, 'i').test(v);
+        default: return false;
       }
-      if(items.length===0) list.innerHTML = `<div class=\"item\"><pre>該当なし</pre></div>`;
     }
 
-    function matches(value, query, matchMode){
-      if(!query) return false;
-      const v = String(value || '');
-      try{
-        if(matchMode === 'partial') return v.toLowerCase().includes(query.toLowerCase());
-        if(matchMode === 'prefix') return v.toLowerCase().startsWith(query.toLowerCase());
-        if(matchMode === 'exact') return v.toLowerCase() === query.toLowerCase();
-        if(matchMode === 'regex'){ const re = new RegExp(query, 'i'); return re.test(v); }
-      }catch(e){ return false; }
-      return false;
-    }
-
-    function doSearch(){
+    // 検索実行
+    function doSearch() {
       const query = q.value.trim();
       const mode = modeSel.value;
       const matchMode = matchSel.value;
       let res = [];
 
-      if(!query){
-        list.innerHTML = `<div class=\"item\"><pre>検索ワードを入力してください</pre></div>`;
+      if (!query) {
+        list.innerHTML = `<div class="item"><pre>検索ワードを入力してください</pre></div>`;
         return;
       }
 
-      if(mode === 'monster'){
+      if (mode === 'monster') {
         res = data.filter(it => matches(it.title, query, matchMode));
-      } else if(mode === 'drop'){
+      } else if (mode === 'drop') {
         res = data.filter(it => it.drops.some(d => matches(d.name || d.itemId, query, matchMode) || matches(d.itemId, query, matchMode)));
-      } else if(mode === 'id'){
+      } else if (mode === 'id') {
         res = data.filter(it => matches(it.id, query, matchMode));
       }
 
       render(res, query);
     }
 
+    // GitHubからJSONデータを非同期で取得
     async function loadMonsterDataFromGitHub() {
       try {
         const response = await fetch('https://raw.githubusercontent.com/Yu08083/nemukunai/main/Mdata.json');
+        if (!response.ok) throw new Error('データの取得に失敗しました');
         const jsonData = await response.json();
-        data = normalizeMonsterJson(jsonData);
-        render(data, ''); // 最初の表示
+        data = normalizeMonsterJson(jsonData); // データの整形
+        render(data, ''); // 初期表示
       } catch (error) {
         console.error('データ取得失敗:', error);
-        showStatus('データの取得に失敗しました', true);
+        list.innerHTML = `<div class="item"><pre>データの取得に失敗しました</pre></div>`;
       }
     }
 
-    window.addEventListener('load', loadMonsterDataFromGitHub);
+    // ページロード時にデータを取得
+    window.addEventListener('load', () => {
+      loadMonsterDataFromGitHub();
+      q.addEventListener('input', doSearch);
+      modeSel.addEventListener('change', doSearch);
+      matchSel.addEventListener('change', doSearch);
+    });
 
-    q.addEventListener('input', doSearch);
-    modeSel.addEventListener('change', doSearch);
-    matchSel.addEventListener('change', doSearch);
     clearBtn.addEventListener('click', () => {
       data = [];
-      list.innerHTML = '<div class=\"item\"><pre>検索ワードを入力してください</pre></div>';
+      list.innerHTML = '<div class="item"><pre>検索ワードを入力してください</pre></div>';
       q.value = '';
     });
   </script>
