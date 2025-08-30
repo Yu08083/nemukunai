@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>モンスター検索ツール — ゆu</title>
+  <style>
+    :root{ --bg:#000; --panel:#071013; --accent:#00ff6a; --muted:#083226; --card:#041014; }
+    html,body{height:100%;}
+    body{margin:0;padding:20px;background:#000;color:var(--accent);font-family:"Roboto Mono","Fira Code",ui-monospace,monospace;-webkit-font-smoothing:antialiased}
+    h1{margin:0 0 12px;color:var(--accent);font-size:18px}
+    .panel{background:linear-gradient(180deg,var(--panel),#020608);border:1px solid rgba(0,255,106,0.06);padding:14px;border-radius:8px}
+    .searchbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .searchbox input[type="text"], .searchbox select, .searchbox button{background:transparent;color:var(--accent);border:1px solid rgba(0,255,106,0.12);padding:8px 10px;border-radius:6px;font-size:14px;appearance:none}
+    .searchbox select option{background:#000;color:var(--accent)}
+    .searchbox input[type="file"]{color:var(--accent)}
+    #list{margin-top:12px}
+    .item{background:linear-gradient(180deg,#02120e,#041716);border:1px solid rgba(0,255,106,0.04);padding:12px;border-radius:6px;margin-top:10px}
+    .item h3{margin:0 0 8px;font-size:15px;color:var(--accent)}
+    pre{background:#00120a;color:var(--accent);padding:10px;border-radius:6px;margin:0;white-space:pre-wrap;font-size:13px}
+    ul.drops{margin:8px 0 0;padding-left:18px}
+    ul.drops li{list-style:disc;color:var(--accent);margin:4px 0}
+    mark{background:rgba(0,255,106,0.12);color:var(--accent);padding:0 4px;border-radius:3px}
+    .meta{font-size:12px;color:rgba(0,255,106,0.6);margin-top:6px}
+    @media(max-width:640px){body{padding:12px}.searchbox input[type="text"]{min-width:120px}}
+  </style>
+</head>
+<body>
+  <h1>モンスター検索ツール</h1>
+  <div class="panel">
+    <div class="searchbox">
+      <input id="q" type="text" placeholder="検索ワード（モンスター名 / ドロップ品 / ID）" autocomplete="off" />
+      <select id="mode">
+        <option value="monster">モンスター名で検索</option>
+        <option value="drop">ドロップ品で検索</option>
+        <option value="id">IDで検索</option>
+      </select>
+      <select id="match">
+        <option value="partial">部分一致</option>
+        <option value="prefix">前方一致</option>
+        <option value="exact">完全一致</option>
+        <option value="regex">正規表現</option>
+      </select>
+      <input id="monsterFile" type="file" accept="application/json" title="モンスターJSONを選択" />
+      <input id="itemMapFile" type="file" accept="application/json" title="（任意）アイテム辞書JSONを選択" />
+      <button id="clearBtn">クリア</button>
+    </div>
+    <div class="meta">※ モンスターJSONを読み込むとローカルでインデックス化。ItemName が空欄のときはアイテム辞書（任意）で補完します。</div>
+    <div id="list"><div class="item"><pre>検索ワードを入力してください</pre></div></div>
+  </div>
+
+  <script>
+    let data = [];
+    let itemMap = {}; // itemId -> name
+
+    const q = document.getElementById('q');
+    const list = document.getElementById('list');
+    const monsterFile = document.getElementById('monsterFile');
+    const itemMapFile = document.getElementById('itemMapFile');
+    const modeSel = document.getElementById('mode');
+    const matchSel = document.getElementById('match');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    function tryParseJson(text){ try{ return JSON.parse(text); }catch(e){ alert('JSON解析に失敗: '+e.message); return null; } }
+
+    function buildItemMap(obj){
+      const map = {};
+      if(!obj) return map;
+      if(Array.isArray(obj)){
+        for(const it of obj){ if(it && it.id) map[String(it.id)] = it.name || it.name_jp || it.name_en || it.label || '' }
+      } else if(typeof obj === 'object'){
+        for(const [k,v] of Object.entries(obj)) map[String(k)] = String(v);
+      }
+      return map;
+    }
+
+    function normalizeMonsterJson(obj){
+      const arr = [];
+      for(const [id, mon] of Object.entries(obj)){
+        if(!mon || typeof mon !== 'object') continue;
+        const name = (mon.name) ? mon.name : String(id);
+        const stats = mon.stats || {};
+        const dropsRaw = mon.drops || [];
+        const drops = dropsRaw.map(d => {
+          if(!d) return { itemId:'', name:'', param:null, inv:null, slot:null };
+          const itemId = d.itemId || d.ItemId || d.item || d.id || '';
+          const givenName = (d.ItemName && String(d.ItemName).trim()) ? String(d.ItemName).trim() : '';
+          const nameFromMap = itemMap[itemId] || '';
+          const nm = givenName || nameFromMap || '';
+          return {
+            itemId: String(itemId||''),
+            name: nm,
+            param: (d.param!==undefined) ? d.param : null,
+            inv: (d['1/']!==undefined) ? d['1/'] : null,
+            slot: d.slot !== undefined ? d.slot : null
+          };
+        });
+
+        const body = {
+          HP: stats.HP ?? 0,
+          AP: stats.AP ?? 0,
+          攻撃力: stats.ATK ?? 0,
+          防御力: stats.DEF ?? 0,
+          素早さ: stats.SPD ?? 0,
+          回避率: stats.AVO ?? 0,
+          ゴールド: stats.DropGold ?? 0,
+          経験値: stats.DropExp ?? 0
+        };
+
+        arr.push({ id: String(id), title: String(name), body, drops });
+      }
+      return arr;
+    }
+
+    function updateNamesFromMap(){
+      if(!itemMap || Object.keys(itemMap).length===0) return;
+      for(const mon of data){
+        for(const d of mon.drops){
+          if(!d.name && itemMap[d.itemId]) d.name = itemMap[d.itemId];
+        }
+      }
+    }
+
+    function groupDrops(drops){
+      const grouped = {};
+      for(const d of drops){
+        if(!grouped[d.itemId]) grouped[d.itemId] = { name: d.name, itemId: d.itemId, variants: [] };
+        grouped[d.itemId].variants.push(d);
+      }
+      // 確率が大きい順にソート
+      for(const g of Object.values(grouped)){
+        g.variants.sort((a,b)=>{
+          const invA = Number(a.inv)||Infinity;
+          const invB = Number(b.inv)||Infinity;
+          return invA - invB; // 分母小さい方=確率高い
+        });
+      }
+      return Object.values(grouped);
+    }
+
+    function formatDropGroup(group, query){
+      const parts = [];
+      parts.push(`${group.name || `[不明:${group.itemId}]`} (ID:${group.itemId})`);
+      const variants = group.variants;
+      const multiple = variants.length > 1;
+      variants.forEach((d,i)=>{
+        let chance = '';
+        if(d.inv && !isNaN(Number(d.inv)) && Number(d.inv) > 0){
+          chance = `1/${d.inv}`;
+          const pct = (1/Number(d.inv))*100;
+          chance += ` (${pct.toFixed(2)}%)`;
+        }
+        if(d.param !== null && d.param !== undefined){
+          const paramStr = `param=${d.param}`;
+          chance = chance ? chance + `, ${paramStr}` : paramStr;
+        }
+        if(multiple && i===0) chance += ' (初回補正)';
+        parts.push(`  - 確率: ${chance}`);
+      });
+      return parts.join('\n');
+    }
+
+    function highlightHtml(text, query){
+      if(!query) return escapeHtml(text);
+      try{
+        const q = String(query);
+        const esc = q.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+        const re = new RegExp(esc, 'gi');
+        return escapeHtml(text).replace(re, m => `<mark>${escapeHtml(m)}</mark>`);
+      }catch(e){ return escapeHtml(text); }
+    }
+
+    function render(items, query){
+      list.innerHTML = '';
+      for(const it of items){
+        const el = document.createElement('div');
+        el.className = 'item';
+        const titleHtml = highlightHtml(it.title + ' ', query);
+        const idHtml = `<span style=\"color:rgba(0,255,106,0.6);font-size:12px\">(${escapeHtml(it.id)})</span>`;
+
+        const s = it.body;
+        const statsText = `ID: ${it.id}\nHP: ${s.HP}\nAP: ${s.AP}\n攻撃力: ${s.攻撃力}\n防御力: ${s.防御力}\n素早さ: ${s.素早さ}\n回避率: ${s.回避率}\nゴールド: ${s.ゴールド}\n経験値: ${s.経験値}`;
+
+        const grouped = groupDrops(it.drops);
+        const dropsHtml = grouped.map(g => `<li>${highlightHtml(formatDropGroup(g, query), query).replace(/\n/g,'<br>')}</li>`).join('');
+
+        el.innerHTML = `<h3>${titleHtml} ${idHtml}</h3><pre>${highlightHtml(statsText, query)}</pre><ul class=\"drops\">${dropsHtml || '<li>ドロップなし</li>'}</ul>`;
+        list.appendChild(el);
+      }
+      if(items.length===0) list.innerHTML = `<div class=\"item\"><pre>該当なし</pre></div>`;
+    }
+
+    function matches(value, query, matchMode){
+      if(!query) return false;
+      const v = String(value || '');
+      try{
+        if(matchMode === 'partial') return v.toLowerCase().includes(query.toLowerCase());
+        if(matchMode === 'prefix') return v.toLowerCase().startsWith(query.toLowerCase());
+        if(matchMode === 'exact') return v.toLowerCase() === query.toLowerCase();
+        if(matchMode === 'regex'){ const re = new RegExp(query, 'i'); return re.test(v); }
+      }catch(e){ return false; }
+      return false;
+    }
+
+    function doSearch(){
+      const query = q.value.trim();
+      const mode = modeSel.value;
+      const matchMode = matchSel.value;
+      let res = [];
+
+      if(!query){
+        list.innerHTML = `<div class=\"item\"><pre>検索ワードを入力してください</pre></div>`;
+        return;
+      }
+
+      if(mode === 'monster'){
+        res = data.filter(it => matches(it.title, query, matchMode));
+      } else if(mode === 'drop'){
+        res = data.filter(it => it.drops.some(d => matches(d.name || d.itemId, query, matchMode) || matches(d.itemId, query, matchMode)));
+      } else if(mode === 'id'){
+        res = data.filter(it => matches(it.id, query, matchMode));
+      }
+
+      render(res, query);
+    }
+
+    q.addEventListener('input', doSearch);
+    modeSel.addEventListener('change', doSearch);
+    matchSel.addEventListener('change', doSearch);
+
+    monsterFile.addEventListener('change', async ()=>{
+      const f = monsterFile.files?.[0]; if(!f) return;
+      try{
+        const text = await f.text();
+        const obj = tryParseJson(text);
+        if(!obj) return;
+        data = normalizeMonsterJson(obj);
+        updateNamesFromMap();
+        list.innerHTML = `<div class=\"item\"><pre>検索ワードを入力してください</pre></div>`;
+      }catch(err){ alert('読み込み失敗: '+err.message); } finally { monsterFile.value = ''; }
+    });
+
+    itemMapFile.addEventListener('change', async ()=>{
+      const f = itemMapFile.files?.[0]; if(!f) return;
+      try{
+        const text = await f.text();
+        const obj = tryParseJson(text);
+        if(!obj) return;
+        itemMap = buildItemMap(obj);
+        updateNamesFromMap();
+        doSearch();
+      }catch(err){ alert('読み込み失敗: '+err.message); } finally { itemMapFile.value = ''; }
+    });
+
+    clearBtn.addEventListener('click', ()=>{ data=[]; itemMap={}; list.innerHTML='<div class=\"item\"><pre>検索ワードを入力してください</pre></div>'; q.value=''; });
+
+  </script>
+</body>
+</html>
